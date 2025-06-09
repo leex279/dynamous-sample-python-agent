@@ -231,7 +231,7 @@ For production deployments, consider:
 services:
   - type: web
     name: dynamous-python-agent-prod
-    env: python
+    runtime: python
     plan: starter  # Paid plan for better performance
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn sample_supabase_agent:app --host 0.0.0.0 --port $PORT --workers 2
