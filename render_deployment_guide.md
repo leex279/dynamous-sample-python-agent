@@ -69,31 +69,64 @@ supabase>=2.0.0
 python-dotenv>=1.0.0
 ```
 
-### 2.2 Optional: render.yaml
-Create this file for automatic configuration:
+### 2.2 Optional: render.yaml (Blueprint Deployment Only)
+**Important**: The `render.yaml` file is **only** used when deploying via **"New" → "Blueprint"**, not when using **"New" → "Web Service"**. If you plan to use the normal Web Service deployment flow, you can skip this section.
+
+Create this file in the **root directory** of your repository for automatic Blueprint configuration:
 
 ```yaml
 services:
   - type: web
     name: dynamous-python-agent
-    env: python
+    runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn sample_supabase_agent:app --host 0.0.0.0 --port $PORT
-    plan: free
     envVars:
+      - key: SUPABASE_URL
+        value: https://your_url.supabase.co
+      - key: SUPABASE_SERVICE_KEY  
+        value: your_super_secret_key
+      - key: API_BEARER_TOKEN
+        value: choose-a-secure-random-token
       - key: PORT
         value: 10000
 ```
 
+**Important**: 
+- **Blueprint vs Web Service**: `render.yaml` only works with **"New" → "Blueprint"** deployment
+- For **"New" → "Web Service"** deployment, configure manually (see Step 3.2)
+- Place this file in the root of your repository (same level as `requirements.txt`)
+- Use `runtime: python` (not `env: python` - this field doesn't exist!)
+- Include all environment variables in the `envVars` section
+- Replace placeholder values with your actual credentials
+
 ## Step 3: Deploy to Render
 
-### 3.1 Connect Repository
+You have two deployment options:
+
+### **Option A: Blueprint Deployment (Uses render.yaml)**
+1. Log into your [Render dashboard](https://dashboard.render.com)
+2. Click **"New"** → **"Blueprint"** (not "Web Service")
+3. Connect your GitHub account if not already connected
+4. Select the `dynamous-sample-python-agent` repository
+5. Render will automatically detect and use your `render.yaml` configuration
+6. Review the auto-populated settings and deploy
+
+### **Option B: Manual Web Service Deployment**
 1. Log into your [Render dashboard](https://dashboard.render.com)
 2. Click **"New"** → **"Web Service"**
 3. Connect your GitHub account if not already connected
 4. Select the `dynamous-sample-python-agent` repository
+5. Configure manually (see sections 3.2 and 3.3 below)
 
-### 3.2 Configure Service Settings
+**Note**: The `render.yaml` file is **only** used with Option A (Blueprint deployment). For Option B, you must configure everything manually.
+
+### 3.1 Connect Repository (Option B Only)
+If using Option B (Manual Web Service):
+
+### 3.2 Configure Service Settings (Option B Only)
+If using Option B (Manual Web Service), fill in the following configuration:
 Fill in the following configuration:
 
 - **Name**: `dynamous-python-agent` (or your preferred name)
@@ -103,8 +136,8 @@ Fill in the following configuration:
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `uvicorn sample_supabase_agent:app --host 0.0.0.0 --port $PORT`
 
-### 3.3 Set Environment Variables
-Click **"Advanced"** and add these environment variables:
+### 3.3 Set Environment Variables (Option B Only)
+If using Option B (Manual Web Service), click **"Advanced"** and add these environment variables:
 
 ```
 SUPABASE_URL=https://your_url.supabase.co
@@ -126,12 +159,19 @@ PORT=10000
 - Generate a strong random token for `API_BEARER_TOKEN`
 
 ### 3.4 Deploy
-1. Click **"Create Web Service"**
+1. Click **"Create Web Service"** (Option B) or **"Apply"** (Option A)
 2. Render will automatically:
    - Clone your repository
    - Install dependencies
    - Build and deploy your application
 3. Wait for deployment to complete (usually 2-5 minutes)
+
+### 3.5 Deployment Method Comparison
+
+| Method | Use Case | Configuration | render.yaml |
+|--------|----------|---------------|-------------|
+| **Blueprint** | Infrastructure as Code, reproducible deployments | Automatic from render.yaml | ✅ Required |
+| **Web Service** | Quick manual setup, one-off deployments | Manual configuration | ❌ Ignored |
 
 ## Step 4: Test Your Deployment
 
@@ -204,6 +244,13 @@ Visit `https://your-app-name.onrender.com/docs` to see the automatic FastAPI doc
 - Check that all dependencies are listed in `requirements.txt`
 - Verify Python version compatibility
 
+**render.yaml Issues:**
+- **Not being used?** Ensure you deployed via **"New" → "Blueprint"**, not **"New" → "Web Service"**
+- Ensure `render.yaml` is in the repository root directory
+- **Verify syntax**: Follow the official [Blueprint specification](https://render.com/docs/blueprint-spec)
+- **No `env` field**: Use only `runtime: python` (not `env: python`)
+- **Include environment variables**: Add all required env vars in `envVars` section
+
 **Database Connection Issues:**
 - Verify Supabase URL format (no trailing slash)
 - Ensure you're using the service role key, not anon key
@@ -231,7 +278,7 @@ For production deployments, consider:
 services:
   - type: web
     name: dynamous-python-agent-prod
-    runtime: python
+    env: python
     plan: starter  # Paid plan for better performance
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn sample_supabase_agent:app --host 0.0.0.0 --port $PORT --workers 2
